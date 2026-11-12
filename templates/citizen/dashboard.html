@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Citizen Dashboard{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">CITIZEN PORTAL</span><h1>Hello, {{ current_user.name.split(' ')[0] }} 👋</h1><p>Here is the latest activity on your waste reports.</p></div><a href="{{ url_for('new_complaint') }}" class="btn btn-success"><i class="fa-solid fa-plus me-2"></i>New report</a></div>
+<div class="row g-3 mb-4"><div class="col-6 col-lg-3"><div class="stat-card"><small>Total reports</small><strong>{{ total }}</strong><i class="fa-solid fa-file-lines"></i></div></div>{% for s in ['Pending','In Progress','Completed'] %}<div class="col-6 col-lg-3"><div class="stat-card"><small>{{ s }}</small><strong>{{ counts[s] }}</strong><i class="fa-solid fa-{{ 'clock' if s=='Pending' else 'truck' if s=='In Progress' else 'circle-check' }}"></i></div></div>{% endfor %}</div>
+<div class="section-card"><div class="section-head"><div><h4>Recent complaints</h4><p>Your latest submitted reports</p></div><a href="{{ url_for('my_complaints') }}">View all <i class="fa-solid fa-arrow-right"></i></a></div>{% with rows=complaints %}{% include "partials/complaint_table.html" %}{% endwith %}</div>
+{% endblock %}

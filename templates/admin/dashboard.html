@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Municipal Dashboard | GreenCity{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+{% block content %}
+<div class="dashboard-heading">
+  <div><span class="eyebrow">MUNICIPAL CONTROL CENTER</span><h1>Dashboard overview</h1><p>Monitor waste collection, service coverage and citizen complaints in one place.</p></div>
+  <a class="btn btn-success" href="{{ url_for('admin_complaints') }}"><i class="fa-solid fa-list-check me-2"></i>Manage reports</a>
+</div>
+
+<div class="overview-grid">
+  <article class="overview-card"><div class="overview-card-top"><span>Total quartiers</span><i class="fa-regular fa-file-lines"></i></div><strong>{{ total_zones }}</strong><small>Municipal neighbourhoods covered</small></article>
+  <article class="overview-card"><div class="overview-card-top"><span>Zones desservies</span><i class="fa-solid fa-location-dot"></i></div><strong>{{ served_zones }}</strong><small>Quartiers with collection completed</small></article>
+  <article class="overview-card"><div class="overview-card-top"><span>Zones non desservies</span><i class="fa-solid fa-triangle-exclamation"></i></div><strong>{{ unserved_zones }}</strong><small>Quartiers still needing service</small></article>
+  <article class="overview-card"><div class="overview-card-top"><span>Total PMEs en service</span><i class="fa-solid fa-truck-fast"></i></div><strong>{{ team_count }}</strong><small>Active collection teams</small></article>
+</div>
+
+<div class="dashboard-panels">
+  <section class="dashboard-panel map-panel">
+    <div class="panel-heading"><div><div class="panel-title-row"><i class="fa-solid fa-map-location-dot"></i><h2>Waste locations</h2></div><p>Reported waste sites across the municipality</p></div><a href="{{ url_for('waste_map') }}">Open full map <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a></div>
+    <div class="map-legend"><span><i class="legend-dot critical"></i>Critical</span><span><i class="legend-dot high"></i>High</span><span><i class="legend-dot medium"></i>Medium</span><span><i class="legend-dot low"></i>Low</span></div>
+    <div id="dashboardMap" class="dashboard-map"></div>
+    <div class="map-footnote"><i class="fa-solid fa-circle-info me-1"></i>Demo sample pins are shown initially; new citizen reports appear here when a map location is selected.</div>
+  </section>
+
+  <section class="dashboard-panel trend-panel">
+    <div class="panel-heading"><div><div class="panel-title-row"><i class="fa-solid fa-chart-line"></i><h2>Citizen complaints</h2></div><p>Monthly reporting and collection trends</p></div><span class="live-label"><i></i>Updated from database</span></div>
+    <div class="chart-legend"><span><i class="chart-key reports"></i>Total reports</span><span><i class="chart-key completed"></i>Collected / completed</span></div>
+    <div class="chart-wrap"><canvas id="complaintTrendChart"></canvas></div>
+    <div class="trend-summary"><div><small>Total reports</small><b>{{ total }}</b></div><div><small>Pending</small><b>{{ counts['Pending'] }}</b></div><div><small>Completed</small><b>{{ counts['Completed'] }}</b></div></div>
+  </section>
+</div>
+
+<div class="dashboard-lower-grid">
+  <section class="dashboard-panel recent-panel">
+    <div class="panel-heading"><div><div class="panel-title-row"><i class="fa-regular fa-clock"></i><h2>Recent citizen complaints</h2></div><p>Latest reports submitted by citizens</p></div><a href="{{ url_for('admin_complaints') }}">View all <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
+    {% set rows=recent %}{% set admin_view=true %}{% include "partials/complaint_table.html" %}
+  </section>
+  <section class="dashboard-panel priority-panel">
+    <div class="panel-heading"><div><div class="panel-title-row"><i class="fa-solid fa-chart-pie"></i><h2>Priority overview</h2></div><p>Reports requiring attention</p></div></div>
+    <div class="priority-chart-wrap"><canvas id="priorityChart"></canvas></div>
+    <div class="priority-list">{% for p in PRIORITIES %}<div><span><i class="legend-dot {{ p|lower }}"></i>{{ p }}</span><b>{{ priority_counts[p] }}</b></div>{% endfor %}</div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+  const map = L.map('dashboardMap', {scrollWheelZoom: false}).setView([23.8760, 90.2900], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
+  const colors = {Critical:'#dc3545', High:'#fd7e14', Medium:'#e0ad19', Low:'#24945e'};
+  fetch('{{ url_for("map_data") }}').then(r => r.ok ? r.json() : []).then(rows => {
+    const bounds = [];
+    rows.forEach(item => {
+      const color = colors[item.priority] || '#24945e';
+      const marker = L.circleMarker([item.lat, item.lng], {radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95}).addTo(map);
+      marker.bindPopup(`<strong>#${item.id} · ${escapeHtml(item.title)}</strong><br>${escapeHtml(item.category)}<br>${escapeHtml(item.address)}<br><span>${escapeHtml(item.priority)} priority · ${escapeHtml(item.status)}</span><br><a href="${item.url}">View report</a>`);
+      bounds.push([item.lat, item.lng]);
+    });
+    if (bounds.length) map.fitBounds(bounds, {padding:[24,24], maxZoom:14});
+    else document.querySelector('.map-footnote').innerHTML = '<i class="fa-solid fa-circle-info me-1"></i>No mapped reports yet. Citizens can add a pin when they submit a waste report.';
+  }).catch(() => {});
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  new Chart(document.getElementById('complaintTrendChart'), {
+    type:'line',
+    data:{labels:{{ month_labels|tojson }}, datasets:[
+      {label:'Total reports', data:{{ monthly_total|tojson }}, borderColor:'#247b56', backgroundColor:'rgba(36,123,86,.10)', fill:true, tension:.35, borderWidth:2, pointRadius:2},
+      {label:'Collected / completed', data:{{ monthly_completed|tojson }}, borderColor:'#e0a52b', backgroundColor:'rgba(224,165,43,.08)', fill:false, tension:.35, borderWidth:2, pointRadius:2}
+    ]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{mode:'index',intersect:false}}, interaction:{mode:'index',intersect:false}, scales:{y:{beginAtZero:true,ticks:{precision:0},grid:{color:'#edf1ee'}},x:{grid:{display:false}}}}
+  });
+  new Chart(document.getElementById('priorityChart'), {
+    type:'doughnut', data:{labels:{{ PRIORITIES|tojson }}, datasets:[{data:{{ [priority_counts['Critical'],priority_counts['High'],priority_counts['Medium'],priority_counts['Low']]|tojson }}, backgroundColor:['#dc3545','#fd7e14','#e0ad19','#24945e'], borderWidth:0, hoverOffset:5}]},
+    options:{maintainAspectRatio:false, cutout:'72%', plugins:{legend:{display:false}}}
+  });
+})();
+</script>
+{% endblock %}

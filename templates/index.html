@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}GreenCity | Smart Waste Management{% endblock %}
+{% block content %}
+<section class="hero p-4 p-lg-5 rounded-4">
+ <div class="row align-items-center g-4"><div class="col-lg-7">
+  <span class="eyebrow"><i class="fa-solid fa-leaf me-2"></i>SMARTER CITY. CLEANER FUTURE.</span>
+  <h1 class="display-4 fw-bold mt-3">Let's make our city <span>cleaner together.</span></h1>
+  <p class="lead mt-3">Report overflowing bins, illegal dumping, and uncollected waste. Track every report and help your municipality respond faster.</p>
+  <div class="d-flex gap-2 flex-wrap mt-4"><a class="btn btn-success btn-lg" href="{{ url_for('register') }}">Report a problem <i class="fa-solid fa-arrow-right ms-2"></i></a><a class="btn btn-outline-success btn-lg" href="{{ url_for('login') }}">Sign in</a></div>
+ </div><div class="col-lg-5"><div class="hero-art"><i class="fa-solid fa-recycle"></i><div class="floating-card"><i class="fa-solid fa-location-dot"></i><div><b>Report & track</b><small>From your neighborhood</small></div></div></div></div></div>
+</section>
+<div class="row g-3 mt-3">
+ <div class="col-md-4"><div class="feature-card"><i class="fa-solid fa-camera"></i><h5>Report with photos</h5><p>Share details and a photo so the team can understand the problem.</p></div></div>
+ <div class="col-md-4"><div class="feature-card"><i class="fa-solid fa-map-location-dot"></i><h5>Pin the location</h5><p>Mark the exact place on the map for faster collection.</p></div></div>
+ <div class="col-md-4"><div class="feature-card"><i class="fa-solid fa-chart-line"></i><h5>Track progress</h5><p>Follow your complaint from submission to completion.</p></div></div>
+</div>
+{% endblock %}

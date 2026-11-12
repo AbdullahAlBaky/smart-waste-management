@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Waste Map{% endblock %}
+{% block head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block content %}<div class="page-heading"><div><span class="eyebrow">GEOLOCATION</span><h1>Waste location map</h1><p>Explore demo sample reports and new citizen reports with saved coordinates.</p></div><div class="legend"><span class="priority critical">Critical</span><span class="priority high">High</span><span class="priority medium">Medium</span><span class="priority low">Low</span></div></div><div class="section-card"><div id="adminMap" class="map-box large-map"></div><p class="form-text mt-2">Only reports where a citizen selected a map location are displayed.</p></div>{% endblock %}
+{% block scripts %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+const map=L.map('adminMap').setView([23.8760,90.2900],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+const colors={Critical:'#dc3545',High:'#fd7e14',Medium:'#e0ad00',Low:'#198754'};
+fetch('/api/complaints/map').then(r=>r.json()).then(items=>{items.forEach(c=>{const marker=L.circleMarker([c.lat,c.lng],{radius:9,color:colors[c.priority]||'#198754',fillOpacity:.85}).addTo(map);marker.bindPopup(`<b>#${c.id} · ${c.title}</b><br>${c.category}<br>${c.address}<br>Priority: ${c.priority}<br>Status: ${c.status}<br><a href="${c.url}">Open details</a>`);});if(items.length){map.fitBounds(items.map(c=>[c.lat,c.lng]),{padding:[30,30]});}}).catch(()=>alert('Could not load map reports.'));
+</script>{% endblock %}
